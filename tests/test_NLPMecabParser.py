@@ -18,7 +18,7 @@ class test_MecabParser(TestCase):
 
     def test_parse_text(self):
         for obj in [self.obj_a, self.obj_b]:
-            self.assertIs(type(obj.mecabstring), str)
+            self.assertIsInstance(obj.mecabstring, str)
             self.assertGreater(len(obj.mecabstring), len(obj.source))
 
     def test_as_matrix(self):
@@ -26,7 +26,7 @@ class test_MecabParser(TestCase):
 
         for obj in [self.obj_a, self.obj_b]:
             matrix = obj.as_matrix()
-            self.assertIs(type(matrix), list)
+            self.assertIsInstance(matrix, list)
             self.assertGreater(len(matrix), 0)
             self.assertLess(len(matrix), 43)
             self.assertEqual(len(matrix[0]), 30)
@@ -35,18 +35,42 @@ class test_MecabParser(TestCase):
             self.assertListEqual([len(x) for x in matrix[:-2]],
                                  [30 for x in matrix[:-2]])
 
-    def test_tokenizer_for_count_vectorizer(self):
-        result = self.obj.tokenizer_for_count_vectorizer(self.obj.source)
+    def test_as_wordlist_for_count_vectorizer(self):
+        result = self.obj.as_wordlist_for_count_vectorizer()
         matrix = self.obj.as_matrix()
-        self.assertIs(type(result), list)
+        self.assertIsInstance(result, list)
         self.assertEqual(len(result), len(matrix) - 1)  # result ist ohne 'EOS'
         self.assertEqual("".join(result), self.obj.source)
 
-    def test_column_from_matrix(self):
-        result = self.obj.column_from_matrix(0)
-        self.assertIs(type(result), list)
-        self.assertIs(type(result[0]), str)
+    def test_tokenizer_for_count_vectorizer(self):
+        result = MecabParser.tokenizer_for_count_vectorizer(self.obj.source)
+        matrix = self.obj.as_matrix()
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), len(matrix) - 1)  # result ist ohne 'EOS'
+        self.assertEqual("".join(result), self.obj.source)
+
+    def test_get_position_from_matrix(self):
+        result = self.obj.get_position_from_matrix(0)
+        self.assertIsInstance(result, list)
+        self.assertIsInstance(result[0], str)
         self.assertGreater(len(result), 0)
         self.assertEqual(result[0], 'お')
         self.assertEqual(result[1], '煎茶')
         self.assertNotEquals(result[-1], 'EOS')
+
+    def test_get_positionwindow_from_matrix(self):
+        result = self.obj.get_positionwindow_from_matrix(slice(0, 2))
+        self.assertIsInstance(result, list)
+        self.assertIsInstance(result[0], list)
+        self.assertEqual(2, len(result[0]))
+        self.assertGreater(len(result), 0)
+        self.assertEqual(result[0][0], 'お')
+        self.assertEqual(result[0][1], '接頭辞')
+        self.assertEqual(result[1][0], '煎茶')
+        self.assertEqual(result[1][1], '名詞')
+        self.assertNotEquals(result[-1][0], 'EOS')
+        self.assertNotEquals(result[-1][1], 'EOS')
+        result = self.obj.get_positionwindow_from_matrix(slice(0, 200))
+        self.assertEqual(self.obj.normale_token_laenge, len(result[0]))
+        result = self.obj.get_positionwindow_from_matrix(slice(0, self.obj.normale_token_laenge))
+        self.assertEqual(self.obj.normale_token_laenge, len(result[0]))

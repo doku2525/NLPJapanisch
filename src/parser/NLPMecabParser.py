@@ -1,7 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
+from enum import Enum
 from functools import reduce
 import MeCab
+from typing import cast
+
+
+class MecabPOS(Enum):
+    WORT = 0
+
 
 @dataclass(frozen=True)
 class MecabParser:
@@ -11,7 +18,7 @@ class MecabParser:
     _cached_matrix: list = field(default_factory=list)
 
     @classmethod
-    def parseText(cls,source) -> cls:
+    def parseText(cls, source) -> cls:
         """ Wandle mit Hilfe des Mecab.Tagger() den in source gespeicherten Text
             in einen mecabstring um. Mecabstring == pro Zeile ein Wort mit den Mecabdaten"""
         tagger = MeCab.Tagger()
@@ -38,7 +45,7 @@ class MecabParser:
             # Ungerade Anzahl an Anfuehrungszeichen, also rufe repairFun solange auf bis die Zahl wieder gerade ist.
             return korrigiere_komma(repairFun(sentence))
 
-        def splitte_an_kommas(zeile: list[str,str]) -> list[str]:
+        def splitte_an_kommas(zeile: list[str, str]) -> list[str]:
             return [zeile[0]] + zeile[1].split(',') if len(zeile) == 2 else zeile
 
         def normalisiere_auf_dreizig_elemente(token: list[str]) -> list[str]:
@@ -55,18 +62,30 @@ class MecabParser:
         if self._cached_matrix and benutze_cache:
             return self._cached_matrix[0]
         # Splitte die Strings in Zeilen (\n) am Tabulator und dann an den Kommas mit Funktion konverterA
-        resultList = map(splitte_an_kommas, [row.split('\t') for row in self.mecabstring.strip().split('\n')])
+        result_list = map(splitte_an_kommas, [row.split('\t') for row in self.mecabstring.strip().split('\n')])
         # Repariere das Problem mit Kommas innerhalb von Anfuehrungszeichen
-        repaired = map(lambda a: a if len(a)==30 else korrigiere_komma(a), resultList)
+        repaired = map(lambda a: a if len(a) == 30 else korrigiere_komma(a), result_list)
         # Teste auf Elemente, die weniger als 30 Elemente haben und erweiter sie auf 30 Elemente
         self._cached_matrix.append(
             list(map(lambda a: normalisiere_auf_dreizig_elemente(a) if len(a) != 30 else a, repaired)))
         return self._cached_matrix[0]
 
-    def tokenizer_for_count_vectorizer(self, string):
-        result = MecabParser.parseText(string).column_from_matrix(0)
-        return result
+    def as_wordlist_for_count_vectorizer(self) -> list[str]:
+        """Liefert Liste mit den Woertern, also position 0, des Objekts.
+        Liste kann dann in CountVectorizer benutzt werden"""
+        return self.get_position_from_matrix(MecabPOS.WORT.value)
 
-    def column_from_matrix(self, position):
-        def slicer(a, pos): return a[pos]
-        return [slicer(x, position) for x in self.as_matrix() if x[0] != 'EOS']
+    @classmethod
+    def tokenizer_for_count_vectorizer(cls, string) -> list[str]:
+        """Liefert Liste mit den Woertern, also position 0, des Objekts.
+        Liste kann dann in CountVectorizer benutzt werden.
+        Die Funktion as_wordlist_for_count_vectorizer() als Klassenmethode implementiert."""
+        return cls.parseText(string).get_position_from_matrix(MecabPOS.WORT.value)
+
+    def get_position_from_matrix(self, position: int) -> list[str]:
+        """Position gleich die Spalte der Matrix."""
+        return cast(list[str], [row[position] for row in self.as_matrix() if row[0] != 'EOS'])
+
+    def get_positionwindow_from_matrix(self, window: slice) -> list[list[str]]:
+        """Positionsfenster liefert eine Matrix mit mehreren Spalten der Matrix."""
+        return cast(list[list[str]], [row[window] for row in self.as_matrix() if row[0] != 'EOS'])

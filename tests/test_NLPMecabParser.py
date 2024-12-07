@@ -1,7 +1,7 @@
 from unittest import TestCase
 import copy
 
-from src.parser.NLPMecabParser import MecabParser
+from src.parser.NLPMecabParser import MecabParser, MecabPOS
 
 
 class test_MecabParser(TestCase):
@@ -57,6 +57,10 @@ class test_MecabParser(TestCase):
         self.assertEqual(result[0], 'お')
         self.assertEqual(result[1], '煎茶')
         self.assertNotEquals(result[-1], 'EOS')
+
+    def test_mecabpos(self):
+        self.assertEqual(self.obj.get_position_from_matrix(0),
+                         self.obj.get_position_from_matrix(MecabPOS.WORT.value))
 
     def test_get_positionwindow_from_matrix(self):
         result = self.obj.get_positionwindow_from_matrix(slice(0, 2))

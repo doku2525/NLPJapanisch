@@ -11,12 +11,15 @@ class MecabPOS(Enum):
     WORTART = 1
 
 
+MecabSatzmatrix = list[list[str]]
+
+
 @dataclass(frozen=True)
 class MecabParser:
     source: str = field(default_factory=str)
     mecabstring: str = None
     normale_token_laenge: int = 30
-    _cached_matrix: list = field(default_factory=list)
+    _cached_matrix: list[MecabMatrix] = field(default_factory=list)
 
     @classmethod
     def parseText(cls, source) -> cls:
@@ -26,7 +29,7 @@ class MecabParser:
         return cls(source=source,
                    mecabstring=tagger.parse(source))
 
-    def as_matrix(self, benutze_cache: bool = True) -> list[list[str]]:
+    def as_matrix(self, benutze_cache: bool = True) -> MecabSatzmatrix:
         """Trenne zuerst das Wort von den Daten, die mit Tabulator getrennt sind.
             Dann Trenne die Daten an den Kommas mit Hilfe der Funktion splitte_an_kommas().
             Bei Eintraegen mit Anfuehrungszeichen kommt es zu Fehlern und es wird auch an den Kommas innerhalb

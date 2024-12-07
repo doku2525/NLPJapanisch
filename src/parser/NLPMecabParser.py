@@ -8,6 +8,7 @@ from typing import cast
 
 class MecabPOS(Enum):
     WORT = 0
+    WORTART = 1
 
 
 @dataclass(frozen=True)
@@ -25,7 +26,7 @@ class MecabParser:
         return cls(source=source,
                    mecabstring=tagger.parse(source))
 
-    def as_matrix(self, benutze_cache: bool = True) -> list[list[list[str]]]:
+    def as_matrix(self, benutze_cache: bool = True) -> list[list[str]]:
         """Trenne zuerst das Wort von den Daten, die mit Tabulator getrennt sind.
             Dann Trenne die Daten an den Kommas mit Hilfe der Funktion splitte_an_kommas().
             Bei Eintraegen mit Anfuehrungszeichen kommt es zu Fehlern und es wird auch an den Kommas innerhalb
@@ -84,8 +85,8 @@ class MecabParser:
 
     def get_position_from_matrix(self, position: int) -> list[str]:
         """Position gleich die Spalte der Matrix."""
-        return cast(list[str], [row[position] for row in self.as_matrix() if row[0] != 'EOS'])
+        return [row[position] for row in self.as_matrix() if row[0] != 'EOS']
 
     def get_positionwindow_from_matrix(self, window: slice) -> list[list[str]]:
         """Positionsfenster liefert eine Matrix mit mehreren Spalten der Matrix."""
-        return cast(list[list[str]], [row[window] for row in self.as_matrix() if row[0] != 'EOS'])
+        return [row[window] for row in self.as_matrix() if row[0] != 'EOS']

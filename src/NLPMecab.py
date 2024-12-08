@@ -1,13 +1,16 @@
 from __future__ import annotations
 import numpy
 import sklearn.feature_extraction.text as skl
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TypeVar, TYPE_CHECKING
 
 from src.parser.NLPMecabParser import MecabSatzmatrix
 import src.NLPMatrixFunctions as dmf
 
 if TYPE_CHECKING:
     from src.parser.NLPMecabParser import MecabParser
+
+
+T = TypeVar('T')
 
 
 MecabTextmatrix = list[MecabSatzmatrix]
@@ -55,12 +58,12 @@ class NLPMecab:
         """Die Anzahl der Woert/Tokens des Satzes mit den meisten Woertern/Token"""
         return self.get_max_x()
 
-    def get_mecab_info_at_position_per_sentence(self, position) -> list[list[str]]:
-        """Ersetze die MecabSatzmatrix der Saetz (text_matrix[satz]) durch den Wert des Tokens an Position position.
+    def get_mecab_info_at_position_per_sentence(self, info_pos: int = 0) -> list[list[str]]:
+        """Ersetze die MecabSatzmatrix der Saetz (text_matrix[satz]) durch den Wert des Tokens an Position info_pos.
         Zum Beispiel:
             f(MecabPOS.WORT.value) -> list[satz][WOERTER]
             f(MecabPOS.WORTART.value) -> list[satz][WORTARTEN] : Dann koennte man die Anzahl der Wortarten ermittteln"""
-        return [[token[position] for token in sentence] for sentence in self.matrix]
+        return [[token[info_pos] for token in sentence] for sentence in self.matrix]
 
     def trim_sentence_to_length(self, sentence, new_length) -> MecabSatzmatrix:
         """Erweiter/Reduziere die Anzahl der Woerter/Tokens des Satzes matrix[tokens][tokeninfos] auf new_length,
@@ -81,10 +84,10 @@ class NLPMecab:
         """Liefert ein Dictionary mit den Woertern als Schluessel und den entsprechenden Werten des CountVectorizer"""
         return self.count_vectorizer.vocabulary_ if self.count_vectorizer else {}
 
-    def execute_count_vectorizer_on_info_pos(self, position: int) -> NLPMecab:
+    def execute_count_vectorizer_on_info_pos(self, info_pos: int = 0) -> NLPMecab:
         """Der Vectorizer weist jedem Wort eine Zahl zu."""
         def dummy(token): return token
-        sentences_with_words = self.get_mecab_info_at_position_per_sentence(position)
+        sentences_with_words = self.get_mecab_info_at_position_per_sentence(info_pos)
         self.count_vectorizer = skl.CountVectorizer(analyzer="word",
                                                     tokenizer=dummy,
                                                     preprocessor=dummy,
@@ -124,7 +127,7 @@ class NLPMecab:
         return {word: value for word, value
                 in self.create_dict_of_all_word_with_binary_count_quote().items() if decider(value[key])}
 
-    def get_wordposition_absolute_in_sentences(self, word, info_pos: int) -> list[list[int]]:
+    def get_wordposition_absolute_in_sentences(self, word, info_pos: int = 0) -> list[list[int]]:
         """Liefert die Positionen des Wortes als Liste innerhalb der Saetze. info_pos ist die Position innerhalb
         des MecabTokenliste. Also info_pos = 2 liefert die Postitionen der Wortarten innerhalb des Satze.
         Kein Vorkommen -> []
@@ -134,45 +137,82 @@ class NLPMecab:
             f('EOS', 0) sollte fuer jeden Satz eine Liste mit einem Element(x = len(satz), also Letztes) liefern.
             f('。', 0) sollte in den meisten Faellen die vorletzte Position liefern.
             f('名詞', 1) liefert die Postionen innerhalb der Saetze an denen ein Substantiv steht"""
-        def get_pos_in_this_sentence(satzmatrix, string, pos):
+        def get_pos_in_this_sentence(satzmatrix: list[list[str]], string: str, pos: int):
             return [index for index, tmp in enumerate(satzmatrix) if satzmatrix[index][pos] == string]
         return [get_pos_in_this_sentence(mecab_satzmatrix, word, info_pos) for mecab_satzmatrix in self.matrix]
 
-    def get_wordposition_in_percent_in_sentences(self, word, info_pos: int) -> list[list[float | int]]:
+    def get_wordposition_in_percent_in_sentences(self, word, info_pos: int = 0) -> list[list[float | int]]:
         """Liefert die Position innerhalb der Saetze nicht absolut, wie die Funktion
         get_get_wordposition_absolut_in_sentences(), sondern in Prozent. So kann man besser erkennen, ob ein
         Wort eher am Anfang, in der Mitte oder am Ende vorkommt."""
-        def getPosInThisSentence(matrix, string, pos):
-            return [index for index, tmp in enumerate(matrix) if matrix[index][pos] == string]
+        def get_pos_in_this_sentence(satzmatrix: list[list[str]], string: str, pos: int):
+            return [index for index, tmp in enumerate(satzmatrix) if satzmatrix[index][pos] == string]
 
-        def calculatePercentage(positions, list_with_maxvalues):
+        def calculate_percentage(positions, list_with_maxvalues):
             return list(map(lambda a, b: [elem * 100 / (b-1) if b > 1 else 0 for elem in a],
                             positions, list_with_maxvalues))
-        return calculatePercentage(
-            [getPosInThisSentence(sentence, word, info_pos) for sentence in self.matrix],
+        return calculate_percentage(
+            [get_pos_in_this_sentence(sentence, word, info_pos) for sentence in self.matrix],
             self.tokens_per_sentence)
 
-    # TODO Bis hierhin gekommen.
-    def getMatrixWithPositionForWordlist(self, listOfWords, infoPos):
-        return [self.get_wordposition_absolute_in_sentences(word, 0) for word in listOfWords]
+    def get_matrix_with_position_absolut_for_wordlist(self,
+                                                      list_of_words: list[str],
+                                                      info_pos: int = 0) -> list[list[list[int]]]:
+        """Ersetzt jedes Wort der Wortliste durch das Ergebniss von get_wordposition_absolute_in_sentences()
+        Ein Liste mit 5 Woertern und einem Text mit neun Saetzen ergibt das eine matrix[5][9][pos]"""
+        return [self.get_wordposition_absolute_in_sentences(word, info_pos) for word in list_of_words]
 
-    def getMatrixWithPositionForWordlistInPercent(self, listOfWords, infoPos):
-        return [self.get_wordposition_in_percent_in_sentences(word, 0) for word in listOfWords]
+    def get_matrix_with_position_in_percent_for_wordlist(self,
+                                                         list_of_words: list[str],
+                                                         info_pos: int = 0) -> list[list[list[int | float]]]:
+        """Ersetzt jedes Wort der Wortliste durch das Ergebniss von get_wordposition_in_percent_in_sentences()
+        Ein Liste mit 5 Woertern und einem Text mit neun Saetzen ergibt eine matrix[5][9][pos]"""
+        return [self.get_wordposition_in_percent_in_sentences(word, info_pos) for word in list_of_words]
 
-    def mapEveryElementRecursive(self, myFunction, myList):
-        #### Noch ohne Verwendungszweck
-        if not myList: return []
+    def map_every_element_recursive(self, map_func: Callable[[T], T], my_list: list[T]):
+        """Fuehre die myFunc auf jedes Element in der Liste/Matrix aus."""
+        # TODO Noch ohne Verwendungszweck
+        # TODO Die Funktion hat nichts mit der Klasse zu tun und koennte/sollte in ein util-Modul
+        # TODO Der rekursive Aufruf koennte bei grossen Matrizen zu Ueberaulf fuehren
         return list(map(lambda elem:
-                        myFunction(elem) if type(elem) is not list else self.mapEveryElementRecursive(myFunction, elem),
-            myList))
+                        map_func(elem) if type(elem) is not list else self.map_every_element_recursive(map_func, elem),
+                        my_list)) if my_list else []
+
+    def verschiebe_dimension_der_matrix(self):
+        # TODO alter Name: concat_matrix_on_axis()
+        """Dreht die Matrix von Matrix(9x47x30) auf Matrix(47x30x9).
+        Bei 9 Saetzen und einer maximalen Satzlaenge von 47 Woerten ist die
+            getrimmte Matrix = Matrix(9x47x30)matrix[y][x][z].
+                bildlich gesprochen mit einem Buch:
+                    von links nach rechts stehen 47 Woerter
+                    von oben nach unten stehen 9 Saetze.
+                    auf den folgenden 30 Seiten steht an der gleichen Position wie auf Seite 1 die mecab_info
+        Das Ergbnis dieser Funktion ist Matrix(47x30x9)
+                bildlich gesprochen mit einem Buch:
+                    von links nach rechts stehen die mecab_infos
+                    von oben nach unten stehen die 47 Woerter eines Satzes.
+                    auf den folgenden 9 Seiten steht an der gleichen Position wie auf Seite 1
+                        das naechste Wort des Satzes
+                Um den ersten Satz zu lesen, muesste man also auf der ersten Seite die erste Spalte von
+                    oben nach unten lesen. matrix[[0-47]][0][0]
+            Jetzt liegen die Information fuer jeden Satz in der z-Dimension uebereinander.
+            Um eine bestimmte Grammatik kann man die 1. Dimension auf das Wort zentrieren, dann befindet sich in
+            der 3. Dimension das gleiche Wort.
+
+        Das selbe Ergebnis laesst sich auch mit NumPy-Transpose erreichen
+            new_matrix = np.transpose(array, (1, 2, 0)) -> Matrix(47x30x9)
+            new_matrix = np.transpose(array, (2, 0, 1)) -> Matrix(30x9x47)
+            new_matrix = np.transpose(array, (2, 1, 0)) -> Matrix(30x47x9)
+        """
+        matrix = self.as_numpy_array()
+        return [[matrix[:, x][:, z] for z in range(self.infos_per_token)] for x in range(self.max_x)]
+
+    # TODO Bis hierhin gekommen.
 
     def sortKeywortsByField(self, dic, feldName, reverse = True):
+        # TODO Kein Test
         sortedList = sorted(dic.items(), key=lambda x: x[1][feldName], reverse=reverse)
         return [elem[0] for elem in sortedList]
-    def concatMatrixOnAxis(self):
-        ### Status = Test
-        matrix = self.as_numpy_array()
-        return [[matrix[:,x][:,z] for z in range(self.infos_per_token)] for x in range(self.max_x)]
 
     def countElements(self,liste):
         ### Noch ohne Verwendung

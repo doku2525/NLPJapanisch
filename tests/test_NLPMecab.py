@@ -182,21 +182,59 @@ class test_NLPJapanischMecab(TestCase):
         result = self.obj.get_wordposition_in_percent_in_sentences('、', 0)
         self.assertEqual(max([len(x) for x in result]), 4, "、 kommt max. 4x in einem Satz vor")
 
-    # TODO Bis hierhin gekommen
-    def test_get_matrix_with_position_for_wordlist(self):
+    def test_get_matrix_with_position_absolut_for_wordlist(self):
         self.obj.create_from_matrix(self.matrix)
+        words = ['ばかり', 'なく', 'で', 'は', '、', '。']
+        result2 = self.obj.get_matrix_with_position_absolut_for_wordlist(words, 0)
+        expected2 = [[[4], [9], [9], [6], [12], [26], [9], [10], [10]], [[6], [12], [11], [8], [14], [], [11], [12], [12]], [[5], [10], [10], [7], [10, 13, 23], [34], [7, 10, 33], [11], [11, 15]], [[2], [11], [1], [1], [3], [1], [1], [], [2, 7]], [[7], [6, 13], [2, 12], [9, 16], [4, 15], [2, 17, 28, 35], [12, 28], [13], [8, 13]], [[18], [18], [24], [22], [28], [45], [35], [30], [23]]]
+        self.assertEqual(len(result2), len(words))
+        self.assertEqual(result2, expected2)
+        for i, tmp in enumerate(words): self.assertEqual(len(result2[i]), self.obj.max_y)
 
-    def test_get_matrix_with_position_for_wordlist_in_percent(self):
+
+    def test_get_matrix_with_position_in_percent_for_wordlist(self):
         self.obj.create_from_matrix(self.matrix)
+        words = ['ばかり', 'なく', 'で', 'は', '、', '。']
+        result = self.obj.get_matrix_with_position_in_percent_for_wordlist(words, 0)
+        expectedFirstLine = self.obj.get_wordposition_in_percent_in_sentences('ばかり', 0)
+        self.assertEqual(expectedFirstLine, result[0])
 
     def test_map_every_element_recursive(self):
         self.obj.create_from_matrix(self.matrix)
 
+        def foo(a):
+            def fuu(b): return a * b
+            return fuu
+
+        liste = []
+        result = self.obj.map_every_element_recursive(foo(2), liste)
+        self.assertEqual( result, [])
+        liste = [[[1], 10], [2], []]
+        result = self.obj.map_every_element_recursive(foo(2), liste)
+        self.assertEqual(result, [[[2], 20], [4], []])
+
+    def test_verschiebe_dimension_der_matrix(self):
+        import numpy as np
+        """Urspruengliche Matrix = Matrix(9x47x30)
+        Ergebnis Matrix = Matrix(47,30,9). Siehe auch Erklaerung in Funktionsdefinition"""
+        self.obj.create_from_matrix(self.matrix)
+        result = self.obj.verschiebe_dimension_der_matrix()
+        self.assertEqual(len(result), self.obj.max_x)
+        for y in result:
+            self.assertEqual(len(y), self.obj.infos_per_token)
+            for x in y:
+                self.assertEqual(len(x), self.obj.max_y)
+        # Die gleiche Funktionalitaet mit NumPy transpose()
+        array = self.obj.as_numpy_array()
+        new_matrix = np.transpose(array, (1, 2, 0))
+        self.assertEqual(47, len(new_matrix))
+        self.assertEqual(30, len(new_matrix[0]))
+        self.assertEqual(9, len(new_matrix[0][0]))
+
+    # TODO Bis hierhin gekommen
+
     def test_sort_keyworts_by_field(self):
         self.obj.create_from_matrix(self.matrix)
-
-    def test_concat_matrix_on_axis(self):
-        assert True
 
     def test_count_elements(self):
         assert True

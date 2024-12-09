@@ -20,6 +20,7 @@ Die Wortart des dritten Wortes des 4. Satzes =  matrix[3][2][MecabPOS.WORTART.va
 
 
 class NLPMecab:
+    # TODO Schreibe genau Funktion der Variablen. Besonders max_x und max_y. TypeHints hinzufuegen. evtl. als dataclass
     def __init__(self):
         self.matrix = []
         self.max_y = 0
@@ -116,6 +117,7 @@ class NLPMecab:
                 'quote': (len(values)-values.count(0))/sum(values)}
 
     def create_dict_of_all_word_with_binary_count_quote(self) -> dict[str, dict[str:int]]:
+        # Alte Bezeichnung countWords()
         """Erstelle ein dict, in dem jedem Wort des CountVectorizers seine BinaryCountQuote zugewiesen wird"""
         word_list = self.get_vocabulary()
         return {word: self.create_binary_count_quote(word) for word in word_list}
@@ -178,7 +180,7 @@ class NLPMecab:
                         map_func(elem) if type(elem) is not list else self.map_every_element_recursive(map_func, elem),
                         my_list)) if my_list else []
 
-    def verschiebe_dimension_der_matrix(self):
+    def verschiebe_dimension_der_matrix(self) -> list[list[ndarray]]:
         # TODO alter Name: concat_matrix_on_axis()
         """Dreht die Matrix von Matrix(9x47x30) auf Matrix(47x30x9).
         Bei 9 Saetzen und einer maximalen Satzlaenge von 47 Woerten ist die
@@ -207,12 +209,44 @@ class NLPMecab:
         matrix = self.as_numpy_array()
         return [[matrix[:, x][:, z] for z in range(self.infos_per_token)] for x in range(self.max_x)]
 
-    # TODO Bis hierhin gekommen.
+    def center_matrix_at_positions(self, list_of_positions: list[list[int]],
+                                   direction: int = 1) -> list[list[list[str]]]:
+        # wenn direction > 0, dann von position bis Ende, wenn direction < 0 dann von Position zum Anfang
+        # bei direction -1 werden die Saetze umgedreht, so dass der Anfang des Satze sentence[-1] ist
+        if len(list_of_positions) != self.number_of_sentences:
+            raise NameError(f"Number of elements in List doesn't match the number of sentences!")
+        if direction > 0:
+            return [sentence[list_of_positions[index][0]:] if list_of_positions[index] else []
+                    for index, sentence
+                    in enumerate(self.matrix)]
+        if direction == 0:
+            return [sentence[:list_of_positions[index][0] + 1] if list_of_positions[index] else []
+                    for index, sentence
+                    in enumerate(self.matrix)]
+        if direction < 0:
+            return [list(reversed(sentence[:list_of_positions[index][0] + 1])) if list_of_positions[index] else []
+                    for index, sentence
+                    in enumerate(self.matrix)]
 
-    def sortKeywortsByField(self, dic, feldName, reverse = True):
+    def center_matrix_at_word(self, word: str) -> list[list[list[str]]]:
+        # Schreibe noch eine Funktion, die nicht nach Wort,
+        # sondern einer Liste mit einer Positionsangabe fuer jeden Satz arbeitet
+        positions = self.get_wordposition_absolute_in_sentences(word, 0)
+        return [sentence[positions[index][0]:] if positions[index] else []
+                for index, sentence
+                in enumerate(self.matrix)]
+
+    def sort_list_of_keywords_by_field(self, dic, field_name, reverse=True):
+        """ Sortiere die Woerter in der CountVectorliste nach einem der
+        drei Felder 'binary', 'count' oder 'quote'.
+        Z.B.: sortKeywortsByField(liste,'binary')"""
         # TODO Kein Test
-        sortedList = sorted(dic.items(), key=lambda x: x[1][feldName], reverse=reverse)
-        return [elem[0] for elem in sortedList]
+        # TODO Typ-Hints
+        # TODO NeueTypedefinition, damit man noch weis, welche Liste oder welche Matrix das ist
+        sorted_list = sorted(dic.items(), key=lambda x: x[1][field_name], reverse=reverse)
+        return [elem[0] for elem in sorted_list]
+
+    # TODO Bis hierhin gekommen.
 
     def countElements(self,liste):
         ### Noch ohne Verwendung
@@ -222,24 +256,17 @@ class NLPMecab:
         ##### Noch keine Verwendung gefunden
         return numpy.rot90(sentence, k=0, axes=(1, 0))
 
-    def centerMatrixAtPositions(self, listOfPositions: list[list[int]], direction = 1) -> list[list[list[str]]]:
-        # wenn direction > 0, dann von position bis Ende, wenn direction < 0 dann von Position zum Anfang
-        # bei direction -1 werden die Saetze umgedreht, so dass der Anfang des Satze sentence[-1] ist
-        if len(listOfPositions) != self.number_of_sentences: raise NameError(f"Number of elements in List doesn't match the number of sentences!")
-        if direction > 0: return [sentence[listOfPositions[index][0]:] if listOfPositions[index] else [] for index, sentence in enumerate(self.matrix)]
-        if direction == 0: return [sentence[:listOfPositions[index][0]+1] if listOfPositions[index] else [] for index, sentence in enumerate(self.matrix)]
-        if direction < 0: return [list(reversed(sentence[:listOfPositions[index][0]+1])) if listOfPositions[index] else [] for index, sentence in enumerate(self.matrix)]
-
-    def centerMatrixAtWord(self, word):
-        # Schreibe noch eine Funktion, die nicht nach Wort, sondern einer Liste mit einer Positionsangabe fuer jeden Satz arbeitet
-        positions = self.get_wordposition_absolute_in_sentences(word, 0)
-        return [sentence[positions[index][0]:] if positions[index] else [] for index, sentence in enumerate(self.matrix)]
-
     def rotateMatrix(self, matrix: list[list[list[int]]], placeHolder=None):
         maximum = max([len(x) for x in matrix])
         return [[row[i] if i < len(row) else placeHolder for row in matrix] for i in range(maximum)]
 
     def joinTokensAtSameColumnInSentence(self, matrix: list[list[list[str]]]) -> list[list[str]]:
+        """Bei einer Matrix(47x30x9) werden die Woerter/Tokens an der gleichen Stelle im zu einer Liste
+        zusammengefasst. Wenn die Matrix auf das Wort ばかり in allen Saetzen ausgerichtet wurde, dann ist das Ergebnis
+        an dieser Position eine Liste nur mit dem Wort ばかり
+        Vorher matrix[0][0][0] = 'ばかり' matrix[0][0][1] = 'ばかり' matrix[0][0][x] = 'ばかり'
+        Danach matrix[0][0] = ['ばかり']
+        """
         def withoutFirstColumn(sentenceMatrix): return list(map(lambda a: a[1:], sentenceMatrix))
         def joinTokensAtFirstColumnInSentence(sentenceMatrix):
             return [[y[i] for y in [x[0] for x in sentenceMatrix]] for i, tmp in enumerate(sentenceMatrix[0][1])]

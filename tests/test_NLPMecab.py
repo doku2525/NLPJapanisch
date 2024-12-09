@@ -186,18 +186,23 @@ class test_NLPJapanischMecab(TestCase):
         self.obj.create_from_matrix(self.matrix)
         words = ['ばかり', 'なく', 'で', 'は', '、', '。']
         result2 = self.obj.get_matrix_with_position_absolut_for_wordlist(words, 0)
-        expected2 = [[[4], [9], [9], [6], [12], [26], [9], [10], [10]], [[6], [12], [11], [8], [14], [], [11], [12], [12]], [[5], [10], [10], [7], [10, 13, 23], [34], [7, 10, 33], [11], [11, 15]], [[2], [11], [1], [1], [3], [1], [1], [], [2, 7]], [[7], [6, 13], [2, 12], [9, 16], [4, 15], [2, 17, 28, 35], [12, 28], [13], [8, 13]], [[18], [18], [24], [22], [28], [45], [35], [30], [23]]]
+        expected2 = [[[4], [9], [9], [6], [12], [26], [9], [10], [10]],
+                     [[6], [12], [11], [8], [14], [], [11], [12], [12]],
+                     [[5], [10], [10], [7], [10, 13, 23], [34], [7, 10, 33], [11], [11, 15]],
+                     [[2], [11], [1], [1], [3], [1], [1], [], [2, 7]],
+                     [[7], [6, 13], [2, 12], [9, 16], [4, 15], [2, 17, 28, 35], [12, 28], [13], [8, 13]],
+                     [[18], [18], [24], [22], [28], [45], [35], [30], [23]]]
         self.assertEqual(len(result2), len(words))
         self.assertEqual(result2, expected2)
-        for i, tmp in enumerate(words): self.assertEqual(len(result2[i]), self.obj.max_y)
-
+        for i, tmp in enumerate(words):
+            self.assertEqual(len(result2[i]), self.obj.max_y)
 
     def test_get_matrix_with_position_in_percent_for_wordlist(self):
         self.obj.create_from_matrix(self.matrix)
         words = ['ばかり', 'なく', 'で', 'は', '、', '。']
         result = self.obj.get_matrix_with_position_in_percent_for_wordlist(words, 0)
-        expectedFirstLine = self.obj.get_wordposition_in_percent_in_sentences('ばかり', 0)
-        self.assertEqual(expectedFirstLine, result[0])
+        expected_first_line = self.obj.get_wordposition_in_percent_in_sentences('ばかり', 0)
+        self.assertEqual(expected_first_line, result[0])
 
     def test_map_every_element_recursive(self):
         self.obj.create_from_matrix(self.matrix)
@@ -208,7 +213,7 @@ class test_NLPJapanischMecab(TestCase):
 
         liste = []
         result = self.obj.map_every_element_recursive(foo(2), liste)
-        self.assertEqual( result, [])
+        self.assertEqual(result, [])
         liste = [[[1], 10], [2], []]
         result = self.obj.map_every_element_recursive(foo(2), liste)
         self.assertEqual(result, [[[2], 20], [4], []])
@@ -231,21 +236,62 @@ class test_NLPJapanischMecab(TestCase):
         self.assertEqual(30, len(new_matrix[0]))
         self.assertEqual(9, len(new_matrix[0][0]))
 
-    # TODO Bis hierhin gekommen
-
-    def test_sort_keyworts_by_field(self):
+    def test_center_matrix_at_positions(self):
         self.obj.create_from_matrix(self.matrix)
+        result = self.obj.center_matrix_at_positions([[1]] * self.obj.number_of_sentences)
+        self.assertEqual(len(result), self.obj.max_y)
+        self.assertEqual(result[0][0][0], "に")
+        self.assertEqual(result[1][0][0], 'はたん')
+        self.assertEqual(result[-1][0][0], 'さん')
+        result = self.obj.center_matrix_at_positions([[]] * self.obj.number_of_sentences)
+        self.assertEqual(len(result), self.obj.max_y)
+        self.assertFalse(result[0])
+        self.assertFalse(result[1])
+        self.assertFalse(result[-1])
+        result = self.obj.center_matrix_at_positions([[1]] * self.obj.number_of_sentences, direction=0)
+        self.assertEqual(len(result), self.obj.max_y)
+        self.assertEqual(result[0][1][0], "に")
+        self.assertEqual(result[1][1][0], 'はたん')
+        self.assertEqual(result[-1][1][0], 'さん')
+        [self.assertEqual(len(sentence), 2) for sentence in result]
+        result = self.obj.center_matrix_at_positions([[1]] * self.obj.number_of_sentences, direction=-1)
+        self.assertEqual(len(result), self.obj.max_y)
+        self.assertEqual(result[0][0][0], "に")
+        self.assertEqual(result[1][0][0], 'はたん')
+        self.assertEqual(result[-1][0][0], 'さん')
+        [self.assertEqual(len(sentence), 2) for sentence in result]
+
+    def test_center_matrix_at_word(self):
+        # TODO Siehe self.fail
+        # self.fail(
+        #     "Bisher nur fuer die erste Ebene Programmiert. Siehe Zuweisung in Funktion" +
+        #     " <positions = self.getPositionsFor(word,0)>")
+        self.obj.create_from_matrix(self.matrix)
+        result = self.obj.center_matrix_at_word("ばかり")
+        self.assertEqual(len(result), self.obj.max_y)
+        [self.assertEqual(sentence[0][0], "ばかり") for sentence in result]
+        [self.assertEqual(sentence[0][1], '助詞') for sentence in result]
+        [self.assertIn(sentence[1][0], ['で', 'か']) for sentence in result]
+        self.assertGreater(len(set([sentence[4][0] for sentence in result])), 3)
+        result = self.obj.center_matrix_at_word("なく")
+
+    def test_sort_list_of_keywords_by_field(self):
+        self.obj.create_from_matrix(self.matrix)
+        self.obj.execute_count_vectorizer_on_info_pos(0)
+        dic = self.obj.create_dict_of_all_word_with_binary_count_quote()
+        result = self.obj.sort_list_of_keywords_by_field(dic, 'binary')
+        self.assertEqual(dic[result[0]]['binary'], 9)
+        self.assertEqual(dic[result[-1]]['binary'], 1)
+        result = self.obj.sort_list_of_keywords_by_field(dic, 'binary', reverse=False)
+        self.assertEqual(dic[result[0]]['binary'], 1)
+        self.assertEqual(dic[result[-1]]['binary'], 9)
+
+    # TODO Bis hierhin gekommen
 
     def test_count_elements(self):
         assert True
 
     def test_rotate_sentence_numpy(self):
-        assert True
-
-    def test_center_matrix_at_positions(self):
-        assert True
-
-    def test_center_matrix_at_word(self):
         assert True
 
     def test_rotate_matrix(self):

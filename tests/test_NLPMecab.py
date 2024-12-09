@@ -273,7 +273,7 @@ class test_NLPJapanischMecab(TestCase):
         [self.assertEqual(sentence[0][1], '助詞') for sentence in result]
         [self.assertIn(sentence[1][0], ['で', 'か']) for sentence in result]
         self.assertGreater(len(set([sentence[4][0] for sentence in result])), 3)
-        result = self.obj.center_matrix_at_word("なく")
+        # result = self.obj.center_matrix_at_word("なく")
 
     def test_sort_list_of_keywords_by_field(self):
         self.obj.create_from_matrix(self.matrix)

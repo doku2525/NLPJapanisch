@@ -108,7 +108,7 @@ class test_NLPJapanischMecab(TestCase):
         from scipy.sparse import csr_matrix
 
         self.obj.create_from_matrix(self.matrix)
-        self.assertFalse(self.obj.count_vectorizer)
+        self.assertIsInstance(self.obj.count_vectorizer, CountVectorizer)
         self.assertFalse(self.obj.count_vectorizer_result)
         self.obj.execute_count_vectorizer_on_info_pos(0)
         self.assertIsInstance(self.obj.count_vectorizer, CountVectorizer)

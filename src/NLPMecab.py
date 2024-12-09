@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import dataclass, field
 import numpy
 import sklearn.feature_extraction.text as skl
 from typing import Callable, TypeVar, TYPE_CHECKING
@@ -19,17 +20,27 @@ Die Wortart des dritten Wortes des 4. Satzes =  matrix[3][2][MecabPOS.WORTART.va
 """
 
 
+@dataclass
 class NLPMecab:
+    matrix: list = field(default_factory=list)
+    max_y: int = 0
+    max_x: int = 0
+    number_of_sentences: int = 0
+    tokens_per_sentence: list = field(default_factory=list)
+    infos_per_token: int = 30
+    count_vectorizer: skl.CountVectorizer = field(default_factory=skl.CountVectorizer)
+    count_vectorizer_result: bool = False
+
     # TODO Schreibe genau Funktion der Variablen. Besonders max_x und max_y. TypeHints hinzufuegen. evtl. als dataclass
-    def __init__(self):
-        self.matrix = []
-        self.max_y = 0
-        self.max_x = 0
-        self.number_of_sentences = 0
-        self.tokens_per_sentence = []
-        self.infos_per_token = 30
-        self.count_vectorizer = False
-        self.count_vectorizer_result = False
+    # def __init__(self):
+    #     self.matrix = []
+    #     self.max_y = 0
+    #     self.max_x = 0
+    #     self.number_of_sentences = 0
+    #     self.tokens_per_sentence = []
+    #     self.infos_per_token = 30
+    #     self.count_vectorizer = False
+    #     self.count_vectorizer_result = False
 
     @staticmethod
     def build_matrix_from_list_of_sentences(tokenizer: Callable[[str], MecabParser],

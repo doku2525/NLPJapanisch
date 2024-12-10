@@ -117,9 +117,9 @@ def neueMatrixFuerWort():
     obj = objekthistoryList[-1]['objekt']
     obj.execute_count_vectorizer_on_info_pos(aktuelleEbene)
     neueMatrix = obj.center_matrix_at_word(wort)
-    objekt = nlp.NLPMecab()
-    objekt.create_from_matrix(neueMatrix)
-    return {'name': wort, 'objekt': objekt}
+    mein_objekt = nlp.NLPMecab()
+    mein_objekt.create_from_matrix(neueMatrix)
+    return {'name': wort, 'objekt': mein_objekt}
 
 
 def neueEbene():
@@ -131,7 +131,8 @@ def neueEbene():
 
 def zeigePositionsMatrixFuerWort(liste):
     for i in liste:
-        print("  ",i)
+        print("  ", i)
+
 
 """ 
 *******************
@@ -157,7 +158,7 @@ if __name__ == '__main__':
     sprache = waehleSprache(meineModule)
     print("Lade Testdaten!")
     objekt = meineModule[sprache][2]('data/testdata.{}'.format(meineModule[sprache][0]))
-    objekthistoryList = objekthistoryList + [{'name':'Gesamt', 'objekt' : objekt}]
+    objekthistoryList = objekthistoryList + [{'name': 'Gesamt', 'objekt': objekt}]
     print("MaxX = ", objekt.max_x, "  MaxY = ", objekt.max_y)
     print("\n")
 

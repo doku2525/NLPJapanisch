@@ -95,18 +95,18 @@ def begrenze_auf_wortzahl():
 
 
 def zeige_wortzahl():
-    objekt = objekthistory_list[-1]['objekt']
-    objekt.execute_count_vectorizer_on_info_pos(aktuelle_ebene)
-    result = objekt.create_dict_of_all_word_with_binary_count_quote()
+    mein_objekt = objekthistory_list[-1]['objekt']
+    mein_objekt.execute_count_vectorizer_on_info_pos(aktuelle_ebene)
+    result = mein_objekt.create_dict_of_all_word_with_binary_count_quote()
     print(result)
     return False
 
 
 def print_mecab_ebene():
-    obj=objekthistory_list[-1]['objekt']
-    eingabe = input("Welche Ebene soll ich zeigen? (0-29) : ")
+    obj = objekthistory_list[-1]['objekt']
+    meine_eingabe = input("Welche Ebene soll ich zeigen? (0-29) : ")
 #    obj.getMecabInfoAtPositionPerSentence(int(eingabe))
-    for i in obj.get_mecab_info_at_position_per_sentence(int(eingabe)):
+    for i in obj.get_mecab_info_at_position_per_sentence(int(meine_eingabe)):
         print(i)
     return False
 

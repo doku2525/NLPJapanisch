@@ -66,31 +66,36 @@ def zeigeWortzahl():
 
 
 def begrenze_auf_wortzahl():
+    word_to_search = ''
     mein_objekt = objekthistory_list[-1]['objekt']
     prozent = int(input("Setze Grenze auf wieviel Prozent? (1-100) : "))
     mein_objekt.execute_count_vectorizer_on_info_pos(aktuelle_ebene)
 #    result = objekt.selectAllWithCount('quote', objekt.number_of_sentences * prozent /100, False)
     result = mein_objekt.filter_by_binary_count_quote(lambda value: value >= prozent / 100, 'quote')
     print("{} Woerter gefunden.".format(len(result.keys())))
-    maxWordLength = max([len(word) for word in list(result.keys())])
-    sortedKeys = mein_objekt.sort_list_of_keywords_by_field(result,'binary')
-    for index, i in enumerate( sortedKeys ):
-        if mein_objekt.number_of_sentences * prozent /100 < result[i]['binary']:
+    max_word_length = max([len(word) for word in list(result.keys())])
+    sorted_keys = mein_objekt.sort_list_of_keywords_by_field(result, 'binary')
+    for index, i in enumerate(sorted_keys):
+        if mein_objekt.number_of_sentences * prozent / 100 < result[i]['binary']:
             print("{} {}\tSaetze:{}  Gesamt:{}  jQuote:{}  PosAbsolut:{} Pos in %:{}".format(
-                f"{index+1: >{3}}",
-                f"{i: <{maxWordLength+2}}",
+                f"{index + 1: >{3}}",
+                f"{i: <{max_word_length + 2}}",
                 f"{result[i]['binary']: >{2}}",
                 f"{result[i]['count']: >{3}}",
-                f"{result[i]['quote']*100:7.2f}",
-                f"{mein_objekt.calculate_position_index(mein_objekt.get_wordposition_absolute_in_sentences(i,aktuelle_ebene)):6.2f}",
+                f"{result[i]['quote'] * 100:7.2f}",
+                f"{mein_objekt.calculate_position_index(mein_objekt.get_wordposition_absolute_in_sentences(i, aktuelle_ebene)):6.2f}",
                 f"{mein_objekt.calculate_position_index(mein_objekt.get_wordposition_in_percent_in_sentences(i, aktuelle_ebene)):6.2f}"))
-    eingabe = input("Zeige PositionsMatrix fuer bestimmtes Wort oder Zurueck(0) ")
-    if eingabe.isdigit():
-        if int(eingabe) == 0: return False
-        wordToSearch = sortedKeys[int(eingabe)-1]
-    elif eingabe not in sortedKeys: begrenze_auf_wortzahl()
-    else: wordToSearch = eingabe
-    zeige_positions_matrix_fuer_wort(mein_objekt.get_wordposition_absolute_in_sentences(wordToSearch, aktuelle_ebene))
+    meine_eingabe = input("Zeige PositionsMatrix fuer bestimmtes Wort oder Zurueck(0) ")
+    if meine_eingabe.isdigit():
+        if int(meine_eingabe) == 0:
+            return False
+        word_to_search = sorted_keys[int(meine_eingabe)-1]
+    elif meine_eingabe not in sorted_keys:
+        begrenze_auf_wortzahl()
+    else:
+        word_to_search = meine_eingabe
+    zeige_positions_matrix_fuer_wort(mein_objekt.get_wordposition_absolute_in_sentences(word_to_search,
+                                                                                        aktuelle_ebene))
     begrenze_auf_wortzahl()
     return False
 

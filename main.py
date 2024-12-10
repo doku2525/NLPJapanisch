@@ -41,7 +41,7 @@ def pruefe_neues_objekt(obj):
         return objekthistory_list
 
 
-def ladeJapanisch(dateiname):
+def lade_japanisch(dateiname):
     print(dateiname)
     sentences = ladeDaten(dateiname)
     print("{} Saetze gefunden!".format(len(sentences)))
@@ -52,23 +52,23 @@ def ladeJapanisch(dateiname):
     return obj
 
 
-def beendeProgramm():
+def beende_programm():
     print("Beende Programm!")
     quit()
 
 
 def zeigeWortzahl():
     objekt = objekthistory_list[-1]['objekt']
-    objekt.execute_count_vectorizer_on_info_pos(aktuelleEbene)
+    objekt.execute_count_vectorizer_on_info_pos(aktuelle_ebene)
     result = objekt.create_dict_of_all_word_with_binary_count_quote()
     print(result)
     return False
 
 
-def begrenzeAufWortzahl():
+def begrenze_auf_wortzahl():
     objekt = objekthistory_list[-1]['objekt']
     prozent = int(input("Setze Grenze auf wieviel Prozent? (1-100) : "))
-    objekt.execute_count_vectorizer_on_info_pos(aktuelleEbene)
+    objekt.execute_count_vectorizer_on_info_pos(aktuelle_ebene)
 #    result = objekt.selectAllWithCount('quote', objekt.number_of_sentences * prozent /100, False)
     result = objekt.filter_by_binary_count_quote(lambda value: value >= prozent / 100, 'quote')
     print("{} Woerter gefunden.".format(len(result.keys())))
@@ -76,33 +76,33 @@ def begrenzeAufWortzahl():
     sortedKeys = objekt.sort_list_of_keywords_by_field(result,'binary')
     for index, i in enumerate( sortedKeys ):
         if objekt.number_of_sentences * prozent /100 < result[i]['binary']:
-            print("{} {}\tSaetze:{}  Gesamt:{}  jQuote:{}  PosAbsolut:{} Pos in %:{}".format(f"{index+1: >{3}}" ,
+            print("{} {}\tSaetze:{}  Gesamt:{}  jQuote:{}  PosAbsolut:{} Pos in %:{}".format(f"{index+1: >{3}}",
                 f"{i: <{maxWordLength+2}}",
                 f"{result[i]['binary']: >{2}}",
                 f"{result[i]['count']: >{3}}",
                 f"{result[i]['quote']*100:7.2f}",
-                f"{objekt.calculate_position_index(objekt.get_wordposition_absolute_in_sentences(i,aktuelleEbene)):6.2f}",
-                f"{objekt.calculate_position_index(objekt.get_wordposition_in_percent_in_sentences(i, aktuelleEbene)):6.2f}"))
+                f"{objekt.calculate_position_index(objekt.get_wordposition_absolute_in_sentences(i, aktuelle_ebene)):6.2f}",
+                f"{objekt.calculate_position_index(objekt.get_wordposition_in_percent_in_sentences(i, aktuelle_ebene)):6.2f}"))
     eingabe = input("Zeige PositionsMatrix fuer bestimmtes Wort oder Zurueck(0) ")
     if eingabe.isdigit():
         if int(eingabe) == 0: return False
         wordToSearch = sortedKeys[int(eingabe)-1]
-    elif eingabe not in sortedKeys: begrenzeAufWortzahl()
+    elif eingabe not in sortedKeys: begrenze_auf_wortzahl()
     else: wordToSearch = eingabe
-    zeige_positions_matrix_fuer_wort(objekt.get_wordposition_absolute_in_sentences(wordToSearch, aktuelleEbene))
-    begrenzeAufWortzahl()
+    zeige_positions_matrix_fuer_wort(objekt.get_wordposition_absolute_in_sentences(wordToSearch, aktuelle_ebene))
+    begrenze_auf_wortzahl()
     return False
 
 
-def zeigeWortzahl():
+def zeige_wortzahl():
     objekt = objekthistory_list[-1]['objekt']
-    objekt.execute_count_vectorizer_on_info_pos(aktuelleEbene)
+    objekt.execute_count_vectorizer_on_info_pos(aktuelle_ebene)
     result = objekt.create_dict_of_all_word_with_binary_count_quote()
     print(result)
     return False
 
 
-def printMecabEbene():
+def print_mecab_ebene():
     obj=objekthistory_list[-1]['objekt']
     eingabe = input("Welche Ebene soll ich zeigen? (0-29) : ")
 #    obj.getMecabInfoAtPositionPerSentence(int(eingabe))
@@ -111,25 +111,25 @@ def printMecabEbene():
     return False
 
 
-def neueMatrixFuerWort():
+def neue_matrix_fuer_wort() -> dict[str, nlp.NLPMecab]:
     wort = input("Welches Wort soll ich benutzen? ").strip()
     print("Erstelle Matrix fuer {}!".format(wort))
     obj = objekthistory_list[-1]['objekt']
-    obj.execute_count_vectorizer_on_info_pos(aktuelleEbene)
-    neueMatrix = obj.center_matrix_at_word(wort)
+    obj.execute_count_vectorizer_on_info_pos(aktuelle_ebene)
+    neue_matrix = obj.center_matrix_at_word(wort)
     mein_objekt = nlp.NLPMecab()
-    mein_objekt.create_from_matrix(neueMatrix)
+    mein_objekt.create_from_matrix(neue_matrix)
     return {'name': wort, 'objekt': mein_objekt}
 
 
-def neue_ebene():
-    global aktuelleEbene
-    nummer = input(f"Aendere Ebene von {aktuelleEbene} auf: ")
-    aktuelleEbene = int(nummer)
+def neue_ebene() -> bool:
+    global aktuelle_ebene
+    nummer = input(f"Aendere Ebene von {aktuelle_ebene} auf: ")
+    aktuelle_ebene = int(nummer)
     return False
 
 
-def zeige_positions_matrix_fuer_wort(liste):
+def zeige_positions_matrix_fuer_wort(liste) -> None:
     for i in liste:
         print("  ", i)
 
@@ -140,17 +140,17 @@ Definiere die globalen Variablen
 ********************
 """
 objekthistory_list = []
-aktuelleEbene = 0
+aktuelle_ebene = 0
 meine_module = [
-    ['jap', 'Japanisch mit Mecab', ladeJapanisch]
+    ['jap', 'Japanisch mit Mecab', lade_japanisch]
 ]
 meine_aktionen = [
-    ['Beende Programm', beendeProgramm],
-    ['Zeige Wortzahl.', zeigeWortzahl],
-    ['Zeige haufigsten Woerter.', begrenzeAufWortzahl],
-    ['Zeige Text at Info Ebene', printMecabEbene],
-    ['Neue Matrix an einem Wort zentriert', neueMatrixFuerWort],
-    [f'Andere aktuelle Ebene (aktuell : {aktuelleEbene})', neue_ebene]
+    ['Beende Programm', beende_programm],
+    ['Zeige Wortzahl.', zeige_wortzahl],
+    ['Zeige haufigsten Woerter.', begrenze_auf_wortzahl],
+    ['Zeige Text at Info Ebene', print_mecab_ebene],
+    ['Neue Matrix an einem Wort zentriert', neue_matrix_fuer_wort],
+    [f'Andere aktuelle Ebene (aktuell : {aktuelle_ebene})', neue_ebene]
 ]
 
 

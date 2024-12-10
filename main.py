@@ -8,23 +8,23 @@ def ladeDaten(filename):
     return result.split()
 
 
-def waehle_sprache(modulListe):
+def waehle_sprache(modul_liste):
     print("Willkommen zum Doku-NLP-Projekt!")
     print("Waehle aus den verfuegbaren Sprachen:")
-    for i, modul in enumerate(modulListe):
+    for i, modul in enumerate(modul_liste):
         print("\t ({}) {}\n".format(i, modul[1]))
     antwort = int(input("\nEingabe : "))
-    return antwort if antwort in range(0, len(modulListe)+1) else quit
+    return antwort if antwort in range(0, len(modul_liste) + 1) else quit
 
 
 def print_auswahl(aktionen):
     print("Was soll ich tun?")
     for i, aktion in enumerate(aktionen):
         print("\t ({}) {}".format(i, aktion[0]))
-    eingabe = int(input("Eingabe: "))
-    if eingabe not in range(0,len(aktionen)):
+    meine_eingabe = int(input("Eingabe: "))
+    if meine_eingabe not in range(0, len(aktionen)):
         return falscheEingabe
-    return aktionen[eingabe][1]
+    return aktionen[meine_eingabe][1]
 
 
 def pruefe_neues_objekt(obj):
@@ -32,8 +32,8 @@ def pruefe_neues_objekt(obj):
         return objekthistory_list
     if obj != objekthistory_list[-1]:
         print("Neues Objekt <<{}>>! Mit neuem Objekt fortfahren?".format(obj['name']))
-        eingabe = input("j/n ").lower()
-        if eingabe == 'j':
+        meine_eingabe = input("j/n ").lower()
+        if meine_eingabe == 'j':
             return objekthistory_list + [obj]
         else:
             return objekthistory_list
@@ -58,9 +58,9 @@ def beende_programm():
 
 
 def zeigeWortzahl():
-    objekt = objekthistory_list[-1]['objekt']
-    objekt.execute_count_vectorizer_on_info_pos(aktuelle_ebene)
-    result = objekt.create_dict_of_all_word_with_binary_count_quote()
+    mein_objekt = objekthistory_list[-1]['objekt']
+    mein_objekt.execute_count_vectorizer_on_info_pos(aktuelle_ebene)
+    result = mein_objekt.create_dict_of_all_word_with_binary_count_quote()
     print(result)
     return False
 

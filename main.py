@@ -8,7 +8,7 @@ def ladeDaten(filename):
     return result.split()
 
 
-def waehleSprache(modulListe):
+def waehle_sprache(modulListe):
     print("Willkommen zum Doku-NLP-Projekt!")
     print("Waehle aus den verfuegbaren Sprachen:")
     for i, modul in enumerate(modulListe):
@@ -122,7 +122,7 @@ def neueMatrixFuerWort():
     return {'name': wort, 'objekt': mein_objekt}
 
 
-def neueEbene():
+def neue_ebene():
     global aktuelleEbene
     nummer = input(f"Aendere Ebene von {aktuelleEbene} auf: ")
     aktuelleEbene = int(nummer)
@@ -141,7 +141,7 @@ Definiere die globalen Variablen
 """
 objekthistory_list = []
 aktuelleEbene = 0
-meineModule = [
+meine_module = [
     ['jap', 'Japanisch mit Mecab', ladeJapanisch]
 ]
 meine_aktionen = [
@@ -150,14 +150,14 @@ meine_aktionen = [
     ['Zeige haufigsten Woerter.', begrenzeAufWortzahl],
     ['Zeige Text at Info Ebene', printMecabEbene],
     ['Neue Matrix an einem Wort zentriert', neueMatrixFuerWort],
-    [f'Andere aktuelle Ebene (aktuell : {aktuelleEbene})', neueEbene]
+    [f'Andere aktuelle Ebene (aktuell : {aktuelleEbene})', neue_ebene]
 ]
 
 
 if __name__ == '__main__':
-    sprache = waehleSprache(meineModule)
+    sprache = waehle_sprache(meine_module)
     print("Lade Testdaten!")
-    objekt = meineModule[sprache][2]('data/testdata.{}'.format(meineModule[sprache][0]))
+    objekt = meine_module[sprache][2]('data/testdata.{}'.format(meine_module[sprache][0]))
     objekthistory_list = objekthistory_list + [{'name': 'Gesamt', 'objekt': objekt}]
     print("MaxX = ", objekt.max_x, "  MaxY = ", objekt.max_y)
     print("\n")

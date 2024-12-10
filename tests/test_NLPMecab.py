@@ -1,4 +1,6 @@
 from unittest import TestCase
+import numpy
+from typing import cast
 
 from src.NLPMecab import NLPMecab
 from src.parser.NLPMecabParser import MecabParser
@@ -286,34 +288,127 @@ class test_NLPJapanischMecab(TestCase):
         self.assertEqual(dic[result[0]]['binary'], 1)
         self.assertEqual(dic[result[-1]]['binary'], 9)
 
-    # TODO Bis hierhin gekommen
-
     def test_count_elements(self):
-        assert True
+        self.obj.create_from_matrix(self.matrix)
+        sentence = self.obj.verschiebe_dimension_der_matrix()[0][1]
+        result = self.obj.count_elements(sentence)
+        self.assertIs(type(result), dict)
+        self.assertEqual(len(result.keys()), 3)
+        self.assertEqual(sum(result.values()), self.obj.max_y)
 
     def test_rotate_sentence_numpy(self):
-        assert True
+        # self.fail("todo")
+        self.obj.create_from_matrix(self.matrix)
+        result = self.obj.rotate_sentence_with_numpy(self.matrix[0])
+        self.assertTrue(result[0][-1], 'これ')
+        self.assertTrue(result[0][-2], 'に')
+        self.assertTrue(result[0][1], '。')
+        self.assertTrue(result[0][0], 'EOS')
+        self.assertTrue(result[1][-1], '代名詞')
+        self.assertTrue(result[1][0], 'EOS')
 
     def test_rotate_matrix(self):
-        assert True
+        self.obj.create_from_matrix(self.matrix)
+        result = self.obj.rotate_matrix(cast(list[list[list[int]]], self.matrix[0]))
+        self.assertTrue(result[0][0], 'これ')
+        self.assertTrue(result[0][1], 'に')
+        self.assertTrue(result[0][-2], '。')
+        self.assertTrue(result[0][-1], 'EOS')
+        self.assertTrue(result[1][0], '代名詞')
+        self.assertTrue(result[1][-1], 'EOS')
+
+        origin = [[1, 2, 3], [4, 5, 6]]
+        expected = [[1, 4], [2, 5], [3, 6]]
+        result = self.obj.rotate_matrix(cast(list[list[list[int]]], origin))
+        self.assertEqual(expected, result)
+        origin = [[1, 2, 3], [4, 5]]
+        expected = [[1, 4], [2, 5], [3, None]]
+        result = self.obj.rotate_matrix(cast(list[list[list[int]]], origin))
+        self.assertEqual(expected, result)
+        origin = [[1, 2, 3], [4, 5]]
+        expected = [[1, 4], [2, 5], [3, 10]]
+        result = self.obj.rotate_matrix(cast(list[list[list[int]]], origin), 10)
+        self.assertEqual(expected, result)
+        origin = [[1, 2], [4, 5, 6]]
+        expected = [[1, 4], [2, 5], [None, 6]]
+        result = self.obj.rotate_matrix(cast(list[list[list[int]]], origin))
+        self.assertEqual(expected, result)
+        origin = [[1, 2]]
+        expected = [[1], [2]]
+        result = self.obj.rotate_matrix(cast(list[list[list[int]]], origin))
+        self.assertEqual(expected, result)
+        origin = [1, 2]
+        self.assertRaises(TypeError, self.obj.rotate_matrix, *(origin,))
 
     def test_join_tokens_at_same_column_in_sentence(self):
-        assert True
+        self.obj.create_from_matrix(self.matrix)
+        matrix = self.obj.center_matrix_at_word("ばかり")
+        result = self.obj.join_tokens_at_same_column_in_sentence(matrix)
+        self.assertEqual('ばかり', result[0][0][0], "Das Wort an der ersten Stelle des Satze")
+        self.assertEqual('で', result[0][1][0], "Das Wort an der letzen Stelle des Satze")
+        self.assertEqual('助詞', result[1][0][0], " Die Wortart des ersten Wortes im Satzes")
+        self.assertEqual('助動詞', result[1][1][0], " Die Wortart des ersten Wortes im Satzes")
+        self.assertIsInstance(result[0][0], tuple, "Es sind alles Tuple")
+        self.assertIsInstance(result[0][-1], tuple, "Es sind alles Tuple")
+        self.assertIn('EOS', result[0][-1], "Im letzten sollte mindestens einmal 'EOS' sein.")
+
+        self.assertEqual(30, len(result))
+        for zeile in result:
+            self.assertEqual(28, len(zeile))
+            for elem in zeile:
+                self.assertEqual(9, len(elem))
+                self.assertIsInstance(elem, tuple)
 
     def test_create_frequenze_dict_for_every_row_in_matrix(self):
-        assert True
+        self.obj.create_from_matrix(self.matrix)
+        matrix = self.obj.join_tokens_at_same_column_in_sentence(self.obj.center_matrix_at_word("ばかり"))
+        result = self.obj.create_frequenze_dict_for_every_row_in_matrix(matrix)
+        self.assertIsInstance(result, list)
+        self.assertEqual(30, len(result))
+        for row in result:
+            self.assertIsInstance(row, list)
+            self.assertEqual(28, len(row))
+            for position in row:
+                self.assertIsInstance(position, dict)
+                self.assertEqual(9, sum(position.values()))
+        self.assertEqual(9, result[0][0]['ばかり'])
 
     def test_calculate_position_index(self):
-        assert True
-
-    def test_calculate_position_index_in_percent(self):
-        assert True
+        self.obj.create_from_matrix(self.matrix)
+        liste = [[0] * 9]
+        self.assertEqual(0, self.obj.calculate_position_index(liste))
+        liste = [[1], [2]]
+        self.assertEqual(1.5, self.obj.calculate_position_index(liste))
+        liste = [[], []]
+        self.assertEqual(0, self.obj.calculate_position_index(liste))
+        liste = [[1], []]
+        self.assertEqual(1, self.obj.calculate_position_index(liste))
+        liste = [[1, 2], [1]]
+        self.assertEqual(1, self.obj.calculate_position_index(liste))
 
     def test_create_distance_matrix(self):
-        assert True
+        self.obj.create_from_matrix(self.matrix)
+        words = ['ばかり', 'なく', 'で', 'は', '、', '。']
+        result = self.obj.create_distance_matrix(words, 0)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(words), len(result))
+        for index in result:
+            self.assertEqual(len(words), len(index))
+            for pair in index:
+                self.assertEqual(2, len(pair))
 
     def test_get_sub_sentence(self):
-        assert True
+        self.obj.create_from_matrix(self.matrix)
+        matrix = self.obj.center_matrix_at_positions([[2]] * self.obj.number_of_sentences, direction=-1)
+        result = self.obj.get_sub_sentence(matrix, slice(1, 3))
+        self.assertEqual(len(result), self.obj.max_y)
+        self.assertEqual(result[0][0][0], "に")
+        self.assertEqual(result[1][0][0], 'はたん')
+        self.assertEqual(result[-1][0][0], 'さん')
+        self.assertEqual(result[-1][-1][0], 'ピーター')
+        [self.assertEqual(len(sentence), 2) for sentence in result]
+        result = self.obj.get_sub_sentence(matrix, slice(1, 1000))
+        [self.assertEqual(len(sentence), 2) for sentence in result]
 
     def test_find_main_element(self):
         assert True

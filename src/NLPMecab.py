@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import numpy
 import sklearn.feature_extraction.text as skl
-from typing import Callable, TypeVar, TYPE_CHECKING
+from typing import Any, Callable, TypeVar, TYPE_CHECKING
 
 from src.parser.NLPMecabParser import MecabSatzmatrix
 import src.NLPMatrixFunctions as dmf
@@ -257,61 +257,86 @@ class NLPMecab:
         sorted_list = sorted(dic.items(), key=lambda x: x[1][field_name], reverse=reverse)
         return [elem[0] for elem in sorted_list]
 
-    # TODO Bis hierhin gekommen.
-
-    def countElements(self,liste):
-        ### Noch ohne Verwendung
+    def count_elements(self, liste: list[T]) -> dict[T:int]:
+        """Erstellt dictionary mit {element[T]: Haufigkeit}"""
+        # Noch ohne Verwendung
         return {element: list(liste).count(element) for element in set(liste)}
 
-    def rotateSentenceNumpy(self, sentence):
-        ##### Noch keine Verwendung gefunden
-        return numpy.rot90(sentence, k=0, axes=(1, 0))
-
-    def rotateMatrix(self, matrix: list[list[list[int]]], placeHolder=None):
-        maximum = max([len(x) for x in matrix])
-        return [[row[i] if i < len(row) else placeHolder for row in matrix] for i in range(maximum)]
-
-    def joinTokensAtSameColumnInSentence(self, matrix: list[list[list[str]]]) -> list[list[str]]:
-        """Bei einer Matrix(47x30x9) werden die Woerter/Tokens an der gleichen Stelle im zu einer Liste
-        zusammengefasst. Wenn die Matrix auf das Wort ばかり in allen Saetzen ausgerichtet wurde, dann ist das Ergebnis
-        an dieser Position eine Liste nur mit dem Wort ばかり
-        Vorher matrix[0][0][0] = 'ばかり' matrix[0][0][1] = 'ばかり' matrix[0][0][x] = 'ばかり'
-        Danach matrix[0][0] = ['ばかり']
+    def rotate_sentence_with_numpy(self, sentence: MecabSatzmatrix) -> numpy.ndarray:
+        """Dreht MecabSatzmatrix(Wordx30) [list[list[str]]um 90 Grad　im Uhrzeigersinn.
+        Vorher: matrix[0-Zahl_der_Woerter][0-30], also in jeder Zeile MecabPosinfos fuer das erstes Wort.
+        Nachher: matrix[0-30][0-Zahl_der_Woerter],
+                    matrix[0][0] -> matrix[0][-1]
+                    matrix[1][0] -> matrix[0][-2]
+                    ....
+                    matrix[-2][0] -> matrix[1][-1]
+                    matrix[-1][0] -> matrix[0][0],
+                    also erste Zeile Liste der Worter MecabPos.WORT, zweite Zeile Liste der Wortarten.
+                    ACHTUNG! Listen sind umgekehrt zur urspruenglichen Position im Satz, durch das drehen.
+                        Deshalb sollten die Listen umgedreht werden, um wieder die urspruengliche Ordnung zu erhalten.
         """
-        def withoutFirstColumn(sentenceMatrix): return list(map(lambda a: a[1:], sentenceMatrix))
-        def joinTokensAtFirstColumnInSentence(sentenceMatrix):
-            return [[y[i] for y in [x[0] for x in sentenceMatrix]] for i, tmp in enumerate(sentenceMatrix[0][1])]
-        ####### Diese 15 kann bestimmt geloescht werden?????
-        if len(matrix[0]) > 15:
-            return joinTokensAtFirstColumnInSentence(matrix) + \
-                    self.joinTokensAtSameColumnInSentence(withoutFirstColumn(matrix))
-        else: return []
+        # Noch keine Verwendung gefunden
+        return numpy.rot90(numpy.array(sentence, str), k=1, axes=(1, 0))
 
-    def createFrequenzeDictForEveryRowInMatrix(self, matrix) -> list[dict[str:int]]:
-        return [dmf.listAsFrequenzyDict(row) for row in matrix]
+    def rotate_matrix(self, matrix: list[list[list[int]]], place_holder=None) -> list:
+        # TODO TypeHints fuer x-dimensionale Listen
+        """Macht das gleiche wie rotate_sentence_with_numpy(),
+         allerdings bleibt Wortorder des urspruenglichen Satzes erhalten.
+         Im Gegensatz zu rotate_sentence_with_numpy() muessen die Listen nicht die gleiche groesse haben.
+         Fehlende Elemente werden durch place_holder ersetz.
+         [[1,2,3] [4,5]] -> [[1,4],[2,5],[3,None|place_holder]]
+         Eindimensionale Listen [1, 2] erzeugen TypeError!"""
+        maximum = max([len(x) for x in matrix])
+        return [[row[i] if i < len(row) else place_holder for row in matrix] for i in range(maximum)]
 
-    def calculatePositionIndex(self, listOfPosition):
-        binary = sum(map(lambda count: 1 if count else 0, listOfPosition))
-        minimalPosCount = sum(map(lambda pos: min(pos) if pos else 0,listOfPosition))
-        return minimalPosCount/binary if binary != 0 else False
+    def join_tokens_at_same_column_in_sentence(
+            self, matrix: MecabTextmatrix | list[list[list[int]]]) -> list[list[tuple[str]]]:
+        """ Fasse die Woerter an der gleichen Position eines jeden Satzes in einem Tupel zusammen.
+        Matrix(Anzahlsaetze x Satzlaenge x MecabPos) -> Matrix(MecabInfo x Maximale_Satzlaenge x Satzlaenge)
+        Spaeter kann man dann result[x][y] in ein Set umwandeln."""
+        rotated_matrix = self.rotate_matrix(matrix, place_holder=[None]*30)
+        result = [list(zip(*position)) for position in rotated_matrix]
+        return self.rotate_matrix(result)
 
-    def calculatePositionIndexInPercent(self, listOfPosition):
-        binary = sum(map(lambda count: 1 if count else 0, listOfPosition))
-        minimalPosCount = sum(map(lambda pos: min(pos) if pos else 0,listOfPosition))
-        return minimalPosCount/binary if binary != 0 else False
+    def create_frequenze_dict_for_every_row_in_matrix(self, matrix) -> list[list[dict[str:int]]]:
+        """Matrix ist mit join_tokens_at_same_column_in_sentence() bearbeitet.
+        Ersetzt jedes Tuple durch ein Dictionary mit der Anzahl der Vorkommen jedes einzelnen Wortes im Tupel.
+        (A, A, B, C, A) -> {A:3, B: 1, C: 1}
+        Siehe Test: result[1.MecabPos][1.PositionInJedemSatzDesTexte] = {'ばかり': 9}"""
+        def erzeuge_dict(liste: tuple[str]) -> dict[str, int]: return {word: liste.count(word) for word in set(liste)}
 
-    def createDistanceMatrix(self,words,infoPos):
-        positions = [self.get_wordposition_absolute_in_sentences(word, 0) for word in words]
-        def createFullMatrix(pos):
+        def erzeuge_zeile(liste: list[tuple[str]]) -> list[dict]: return [erzeuge_dict(elem) for elem in liste]
+
+        return [erzeuge_zeile(mecab_pos) for mecab_pos in matrix]
+
+    def calculate_position_index(self, list_of_positions):
+        """Nimmt das Ergebnis aus get_wordposition_absolute_in_sentences() und berechnet einen Indexwert
+        fuer die Position ueber alle Saetze hinweg."""
+        binary = sum(map(lambda count: 1 if count else 0, list_of_positions))
+        minimal_pos_count = sum(map(lambda pos: min(pos) if pos else 0, list_of_positions))
+        return minimal_pos_count/binary if binary != 0 else False
+
+    def create_distance_matrix(self, words: list[str], info_pos=0) -> list[list[list[int, int]]]:
+        """Erzeugt eine Matrix mit dem Abstand der Woerter zueinander.
+        Fuer jedes Wort der Wortliste wird der Abstand zu den anderen Woertern der Liste erstellt.
+        Bei 6 Woertern ergibt das eine Matrix(6x6x2)"""
+
+        positions = [self.get_wordposition_absolute_in_sentences(word, info_pos) for word in words]
+
+        def create_full_matrix(pos) -> list:
             combinations = numpy.multiply.reduce([len(sen) for sen in pos if sen])
             return [elem * (combinations//len(elem)) if elem else [1000] * combinations for elem in pos]
-        def subtract(array):
-            #numpy.subtract.outer(elem[0],elem)
-            return [numpy.subtract.outer(elem,array)[0] for elem in array]
-        return subtract(createFullMatrix(self.rotateMatrix(positions)[3]))
 
-    def getSubSentence(self, matrix: list[list[list[int]]], positionSlice: slice) -> list[list[list[int]]]:
-        return [sentence[positionSlice] for sentence in matrix]
+        def subtract(array) -> list:
+            # numpy.subtract.outer(elem[0],elem)
+            return [numpy.subtract.outer(elem, array)[0] for elem in array]
+
+        return subtract(create_full_matrix(self.rotate_matrix(positions)[3]))
+
+    def get_sub_sentence(self, matrix: list[list[list[Any]]], position_slice: slice) -> list[list[list[Any]]]:
+        """Liefer einen Teil der Matrix. Aus jedem Satz die Position innerhalb des position_slice.
+        f(slice(1,3)) -> Matrix(Anzahl_der_Saetze X 2 X 30"""
+        return [sentence[position_slice] for sentence in matrix]
 
     def findMainElement(self):
         """Fuer das Hauptelement gilt:

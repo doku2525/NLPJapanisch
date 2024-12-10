@@ -17,7 +17,7 @@ def waehleSprache(modulListe):
     return antwort if antwort in range(0, len(modulListe)+1) else quit
 
 
-def printAuswahl(aktionen):
+def print_auswahl(aktionen):
     print("Was soll ich tun?")
     for i, aktion in enumerate(aktionen):
         print("\t ({}) {}".format(i, aktion[0]))
@@ -29,16 +29,16 @@ def printAuswahl(aktionen):
 
 def pruefe_neues_objekt(obj):
     if not obj:
-        return objekthistoryList
-    if obj != objekthistoryList[-1]:
+        return objekthistory_list
+    if obj != objekthistory_list[-1]:
         print("Neues Objekt <<{}>>! Mit neuem Objekt fortfahren?".format(obj['name']))
         eingabe = input("j/n ").lower()
         if eingabe == 'j':
-            return objekthistoryList + [obj]
+            return objekthistory_list + [obj]
         else:
-            return objekthistoryList
+            return objekthistory_list
     else:
-        return objekthistoryList
+        return objekthistory_list
 
 
 def ladeJapanisch(dateiname):
@@ -58,7 +58,7 @@ def beendeProgramm():
 
 
 def zeigeWortzahl():
-    objekt = objekthistoryList[-1]['objekt']
+    objekt = objekthistory_list[-1]['objekt']
     objekt.execute_count_vectorizer_on_info_pos(aktuelleEbene)
     result = objekt.create_dict_of_all_word_with_binary_count_quote()
     print(result)
@@ -66,7 +66,7 @@ def zeigeWortzahl():
 
 
 def begrenzeAufWortzahl():
-    objekt = objekthistoryList[-1]['objekt']
+    objekt = objekthistory_list[-1]['objekt']
     prozent = int(input("Setze Grenze auf wieviel Prozent? (1-100) : "))
     objekt.execute_count_vectorizer_on_info_pos(aktuelleEbene)
 #    result = objekt.selectAllWithCount('quote', objekt.number_of_sentences * prozent /100, False)
@@ -89,13 +89,13 @@ def begrenzeAufWortzahl():
         wordToSearch = sortedKeys[int(eingabe)-1]
     elif eingabe not in sortedKeys: begrenzeAufWortzahl()
     else: wordToSearch = eingabe
-    zeigePositionsMatrixFuerWort(objekt.get_wordposition_absolute_in_sentences(wordToSearch,aktuelleEbene))
+    zeige_positions_matrix_fuer_wort(objekt.get_wordposition_absolute_in_sentences(wordToSearch, aktuelleEbene))
     begrenzeAufWortzahl()
     return False
 
 
 def zeigeWortzahl():
-    objekt = objekthistoryList[-1]['objekt']
+    objekt = objekthistory_list[-1]['objekt']
     objekt.execute_count_vectorizer_on_info_pos(aktuelleEbene)
     result = objekt.create_dict_of_all_word_with_binary_count_quote()
     print(result)
@@ -103,7 +103,7 @@ def zeigeWortzahl():
 
 
 def printMecabEbene():
-    obj=objekthistoryList[-1]['objekt']
+    obj=objekthistory_list[-1]['objekt']
     eingabe = input("Welche Ebene soll ich zeigen? (0-29) : ")
 #    obj.getMecabInfoAtPositionPerSentence(int(eingabe))
     for i in obj.get_mecab_info_at_position_per_sentence(int(eingabe)):
@@ -114,7 +114,7 @@ def printMecabEbene():
 def neueMatrixFuerWort():
     wort = input("Welches Wort soll ich benutzen? ").strip()
     print("Erstelle Matrix fuer {}!".format(wort))
-    obj = objekthistoryList[-1]['objekt']
+    obj = objekthistory_list[-1]['objekt']
     obj.execute_count_vectorizer_on_info_pos(aktuelleEbene)
     neueMatrix = obj.center_matrix_at_word(wort)
     mein_objekt = nlp.NLPMecab()
@@ -129,7 +129,7 @@ def neueEbene():
     return False
 
 
-def zeigePositionsMatrixFuerWort(liste):
+def zeige_positions_matrix_fuer_wort(liste):
     for i in liste:
         print("  ", i)
 
@@ -139,12 +139,12 @@ def zeigePositionsMatrixFuerWort(liste):
 Definiere die globalen Variablen
 ********************
 """
-objekthistoryList = []
+objekthistory_list = []
 aktuelleEbene = 0
 meineModule = [
     ['jap', 'Japanisch mit Mecab', ladeJapanisch]
 ]
-meineAktionen = [
+meine_aktionen = [
     ['Beende Programm', beendeProgramm],
     ['Zeige Wortzahl.', zeigeWortzahl],
     ['Zeige haufigsten Woerter.', begrenzeAufWortzahl],
@@ -158,10 +158,10 @@ if __name__ == '__main__':
     sprache = waehleSprache(meineModule)
     print("Lade Testdaten!")
     objekt = meineModule[sprache][2]('data/testdata.{}'.format(meineModule[sprache][0]))
-    objekthistoryList = objekthistoryList + [{'name': 'Gesamt', 'objekt': objekt}]
+    objekthistory_list = objekthistory_list + [{'name': 'Gesamt', 'objekt': objekt}]
     print("MaxX = ", objekt.max_x, "  MaxY = ", objekt.max_y)
     print("\n")
 
     while True:
-        eingabe = printAuswahl(meineAktionen)
-        objekthistoryList = pruefe_neues_objekt(eingabe())
+        eingabe = print_auswahl(meine_aktionen)
+        objekthistory_list = pruefe_neues_objekt(eingabe())
